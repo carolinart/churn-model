@@ -74,19 +74,18 @@ create_model <- function(models_path,
   }
   
   datos <- rbindlist(datos_list, use.names = T, fill = T)
-  # rm(datos_list)
-  # gc()
+  rm(datos_list)
+  gc()
   
   
   #last cleaning
   # datos[, crm_estrato := paste0("estr_", crm_estrato)]
   # datos[, crm_estrato := factor(crm_estrato, levels = c(paste0("estr_", 0:6)))]
-
-
+  
+  
   #Definir el target 
   datos[tipo_cancelacion == "Sin Cancelacion",  target := 0]
   datos[tipo_cancelacion == "Cancelacion Voluntaria",  target := 1]
-  
   datos[, tipo_cancelacion := NULL]
   
   
@@ -101,18 +100,19 @@ create_model <- function(models_path,
       sdo_total,
       vlr_ult_compra,
       vlr_ult_av,
-      util,
+      # util,
       mes_venci,
       dias_ult_pago,
       crm_valor_egreso_mes,
       crm_edad,
       crm_antiguedad,
       cant_total_prod,
+      cuotas_median,
       sdo_capt_total_tmenos1,
       util_tmenos1,
       dias_ult_compra_tmenos1,
       cartera_capital_total
-      )]
+    )]
   #15
   #con ingreso se sobre ajusta el modelo
   
@@ -164,7 +164,7 @@ create_model <- function(models_path,
   # categorical_cols <-
   #   c("crm_genero")
   # 
-
+  
   numeric_cols <-
     names(master)[names(master) %!in% c(id_variables)]
   
@@ -260,9 +260,10 @@ create_model <- function(models_path,
     booster = "gbtree",
     objective = "binary:logistic",
     eval_metric = "auc",
-    early_stoping_round = 5,
-    nrounds = 200
-    )
+    early_stoping_round = 10,
+    nrounds = 250,
+    max_depth = 4
+  )
   
   model_xgb_auc <- xgb.train(
     data = dtrain,

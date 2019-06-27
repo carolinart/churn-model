@@ -1,16 +1,16 @@
-###################### Función ####################
+###################### Function ####################
 
 # Cleaning and treatment of original bases to create month staging table
 #' @param original_path : path where original data is alocated
 #' @param staging_path : path where rds is saved
 #' @return :  returns a cleaned staging table
-#' @param yearmonth : yyyymm
+#' @param yearmonth : month to analize in yyyymm format
 
 
 datostc_staging_maker <-
-  function(yearmonth, original_path, staging_path) {
+  function(yearmonth, plot_alias, original_path, staging_path) {
     
-    #Leer archivos formato csv y extraer caracteres numéricos
+    #Leer archivos formato csv y extraer caracteres numÃ©ricos
     files <- list.files(path = original_path, pattern = ".csv")
     position <-
       paste0(sapply(str_extract_all(files, "[0-9]+"), "[[", 1)) %>% as.numeric
@@ -47,7 +47,7 @@ datostc_staging_maker <-
     gc()
     
     #Cambiar nombre periodo
-    setnames(datostc, "PERIODO_ACTUAL", "PERIODO")
+    # setnames(datostc, "PERIODO_ACTUAL", "PERIODO")
     names(datostc) <- tolower(names(datostc)) #Reducir letra
     
     #Control calidad
@@ -77,12 +77,12 @@ datostc_staging_maker <-
     #Control calidad
     print(nrow(datostc))
     
-    #Limitar numero de días de mora por poliricas de cobranzas y campañas
+    #Limitar numero de dÃ�as de mora por poliricas de cobranzas y campaÃ±as
     print(nrow(datostc))
     print("dias mora = 0")
     datostc <- datostc[dias_mora == 0]
     #Filtar saldos en mora y carteras vencidas
-    print("cartera vencida = 0")
+    print("catera vencida = 0")
     datostc <- datostc[cartera_vencida == 0]
     #Control de calidad
     print(nrow(datostc))
@@ -138,14 +138,58 @@ datostc_staging_maker <-
     print(nrow(datostc))
     
     #Crear variables para la target 
-    ##Cancelacion voluntaria y sin cancelacion (cancelacion involuntaria incluida en esta categoria)
     datostc <- datostc[, tipo_cancelacion := ifelse(is.na(tipo_cancelacion), "Sin Cancelacion",
-                                                           ifelse(tipo_cancelacion == "Cancelación Voluntaria", "Cancelacion Voluntaria",
-                                                                  "Cancelacion Involuntaria"))]
+                                                    ifelse(grepl("Voluntaria", tipo_cancelacion), "Cancelacion Voluntaria",
+                                                           "Cancelacion Involuntaria"))]
     
+    #####Parentesis: Grafica importante####
+    #Rutas para guardar grafica
+    plots_path <- "documentos/plots/descriptive_stats"
+    
+    # Nombres carpeta de plots
+    plot_alias <-
+      paste0("churn_", today() %>% format(., "%Y%m%d"))
+    
+    plots_path <-
+      os.path.join(plots_path, plot_alias)
+    dir.create(plots_path)
+    
+    print("Haciendo grafica")
+    
+    # Porcentaje de cada categoria: Stock, cancelacion involuntaria y cancelacion voluntaria
+    name_f <- unique(paste("perc_categ", datostc$periodo, sep = "_"))
+    p <- datostc %>%
+      dplyr::group_by(tipo_cancelacion) %>%
+      dplyr::summarise(Count = n()) %>%
+      dplyr::mutate(percent = prop.table(Count) * 100) %>%
+      ggplot(aes(reorder(tipo_cancelacion,-percent), percent), fill = tipo_cancelacion) +
+      geom_col(fill = c("#00AFBB", "#E7B800", "#FF6347")) +
+      geom_text(aes(label = paste0(
+        sprintf("%.2f%%", percent), "\n", comma(Count)
+      )),
+      hjust = 0.5,
+      vjust = 0.5,
+      size = 3) +
+      theme_bw() +
+      labs(
+        caption = "Nota: Porcentaje arriba, cantidad total abajo",
+        x = "Resultado",
+        y = "Porcentaje",
+        title = paste("Porcentaje agregado de tarjeta de crÃ©dito en cada \n resultado posible, para", 
+                      datostc$periodo)
+      )
+    ggsave(plot = p,
+           file = os.path.join(plots_path, paste0(name_f, ".png")),
+           height = 7,
+           width = 9)
+    
+    rm(p)
+    gc()
+    print(paste("Grafica guardada en", plots_path))
+    
+    #####Continuacion tratamiento a datos####
     #Eliminar cancelacion involuntaria (temporalmente)
     datostc <- datostc[tipo_cancelacion != "Cancelacion Involuntaria"]
-                                                  
     
     #Control de calidad
     print(nrow(datostc))
@@ -167,7 +211,7 @@ datostc_staging_maker <-
     datostc[, periodo := paste0(periodo, "01")]
     datostc[, periodo := as.Date(periodo, format = "%Y%m%d")]
     
-    #Calculo de días desde fecha:
+    #Calculo de dias desde fecha:
     #Ultimo aumento
     datostc[, mes_ult_aumento := round(interval(start = as.Date(f_ultimo_aumento),
                                                 end = as.Date(periodo)) /

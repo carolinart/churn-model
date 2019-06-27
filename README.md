@@ -1,1 +1,2 @@
-Modelo de clasificación de cancelación voluntaria de TC
+#Churn Model
+Classification model for credit card voluntary churn.

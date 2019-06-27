@@ -1,0 +1,225 @@
+---
+title: "first attemp"
+author: "Daniel Zapata"
+date: "12 de marzo de 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir = normalizePath("../../.."))
+knitr::opts_chunk$set(echo = TRUE)
+options(scipen = 999)
+```
+Analisis de tarjeta de crédito para personas naturales
+
+
+# Load packages
+```{r}
+library(data.table)
+library(readxl)
+library(stringr)
+library(ggplot2)
+```
+
+# Load data 
+```{r}
+data_path <- "Informacion_Centralizada/Data_Analytics"
+
+fac_tc_2019 <-
+fread(paste(data_path, "FacturacionTC", "FACTURACION_TC_2019.csv", sep = "/"))
+
+tarjetas_2019_02 <-
+fread(paste(
+data_path,
+"Detalle_Productos",
+"TARJETA_CREDITO_2019_02.csv",
+sep = "/"
+))
+
+# saldos_moras_2019 <-
+# fread(paste(
+# data_path,
+# "Saldos_Moras",
+# "Activo_Saldos_Moras_2019.csv",
+# sep = "/"
+# ))
+
+mcc <-
+  read_excel("modelos_fuertes/exploration_credit_card/datos/dictionary/MCC2.xlsx")
+
+digitales <-
+  fread("modelos_fuertes/exploration_credit_card/datos/dictionary/tc_digitales.csv")
+
+fac_tc_2019 <- merge(fac_tc_2019, mcc, by = "MCC", all.x = T)
+rm(mcc)  
+gc()
+```
+
+# digitales
+```{r}
+fac_tc_2019[, DIGITAL :=0]
+fac_tc_2019[CODIN %in% digitales$COD_INT, DIGITAL := 1] 
+rm(digitales)
+gc()
+```
+
+#personas natuarles
+
+tarjetas asignadas a personas naturales
+```{r}
+fac_tc_2019 <- fac_tc_2019[substr(IDCL, 1, 1) %in% c("C", "E")]
+fac_tc_2019[, llave := paste0(BIN, str_sub(TARJETA, start = -4), IDCL)]
+fac_tc_2019
+```
+tarjetas de clase ordinaria o consumo 
+```{r}
+tarjetas_2019_02$clase_cartera %>% unique
+tarjetas_2019_02[, llave := paste0(str_sub(NUM_PROD, 1, 6), str_sub(NUM_PROD, start = -4), TIP_ID, NUM_ID)]
+tarjetas_2019_02
+```
+
+```{r}
+fac_tc_2019[llave %in% tarjetas_2019_02$llave] %>% nrow / nrow(fac_tc_2019)
+fac_tc_2019 <-
+  merge(fac_tc_2019, tarjetas_2019_02[, .(llave, saldo_capital, clase_cartera, ACRE_LIMITE_CR)], by = "llave")
+fac_tc_2019 <- fac_tc_2019[clase_cartera == "O"]
+rm(tarjetas_2019_02)
+gc()
+```
+
+```{r}
+unique(fac_tc_2019$CANT)
+fac_tc_2019[CANT > 1][order(-CANT)]
+fac_tc_2019 <- fac_tc_2019[, .(llave, CODIN, IDCL, NOMBRE, FECHA, PERIODO = FECHA_ACUM, BIN, CLAVE, DESTI, PLAZO, CANT, VALOR, NM_ESTAB, REGION, TIPO, OFICINA_NUM, TASA_NUM, PAIS_INTERNACIONAL, MT_DESC, DESCRIPCION, Description, GROUP, DIGITAL, saldo_capital, ACRE_LIMITE_CR)]
+names(fac_tc_2019) <- tolower(names(fac_tc_2019))
+as.Date(head(fac_tc_2019$fecha), "%d/%m/%Y")
+fac_tc_2019[, fecha := as.Date(fecha, "%d/%m/%Y")]
+```
+
+
+```{r}
+fac_tc_2019[is.na(description), .N, by = clave]
+```
+```{r}
+fac_tc_2019[is.na(description) & clave == "Compras"]
+```
+
+```{r}
+fac_tc_2019
+```
+
+
+```{r}
+table1 <- fac_tc_2019[, .(trx_clave = .N), by = .(periodo, clave)][order(periodo, -trx_clave)]
+table1[,trx_mes := sum(trx_clave), by = periodo]
+table1[, porc_clave := round((trx_clave/trx_mes)*100, 2)]
+table1
+
+```
+en los ultimos dos meses el 85% de las transacciones son compras y el 15% avances
+
+# analisis de solo compras
+```{r}
+compras_tc_2019 <- fac_tc_2019[clave == "Compras"]
+```
+
+Distribución de numero de compras por tarjeta 
+```{r}
+count_comp_cl <- compras_tc_2019[, .(trx = sum(cant)), by = .(periodo, codin)]
+summary(count_comp_cl$trx)
+```
+
+```{r}
+count_comp_cl[trx == max(trx)]
+```
+```{r}
+compras_tc_2019[codin == count_comp_cl[trx == max(trx), codin], .N, by = .(periodo, mt_desc)][order(-N)]
+```
+
+
+```{r}
+compras_tc_2019[, periodo := factor(periodo, ordered = T)]
+compras_tc_2019[, .(trx = sum(cant)), by = .(periodo, codin)]%>% ggplot(aes(x = trx, fill = periodo)) +
+  geom_histogram(bins = 80, stat ="count" ) +
+  xlim(c(0, 30)) +
+  facet_grid(periodo ~.)
+```
+
+
+
+
+# sectores económicos más populares
+
+```{r}
+groups <- compras_tc_2019[, .(
+  trx = sum(cant),
+  vlr_pro = mean(valor),
+  vlr_med = median(valor),
+  vlr_total = sum(valor)
+  ), by = .(periodo, description)][order(periodo,-trx)]
+groups
+```
+# comercios más populares
+```{r}
+compras_tc_2019[, .(
+  trx = sum(cant),
+  vlr_pro = mean(valor),
+  vlr_med = median(valor),
+  vlr_total = sum(valor)
+  ), by = .(periodo, mt_desc)][order(periodo,-trx)]
+```
+# comercios más populares por categoria de coemrcio
+```{r}
+compras_tc_2019[, .(
+  trx = sum(cant),
+  vlr_pro = mean(valor),
+  vlr_med = median(valor),
+  vlr_total = sum(valor)
+  ), by = .(periodo, description, mt_desc)][order(periodo, description, -trx, mt_desc)][trx > 100]
+
+
+```
+
+# buscar un comercio en específico
+
+```{r}
+str_to_search <- "UBER "
+compras_tc_2019[str_detect(mt_desc, str_to_search) , .(
+  trx = sum(cant),
+  vlr_pro = mean(valor),
+  vlr_med = median(valor),
+  vlr_total = sum(valor)
+  ), by = .(periodo, description, mt_desc)][order(periodo, -trx, mt_desc)]
+  
+```
+
+```{r}
+str_to_search <- "UBER "
+position_explore <- 6
+mt_desc_to_search <- compras_tc_2019[str_detect(mt_desc, str_to_search) ,
+                                     .(trx = sum(cant))
+                                     , by = .(periodo, description, mt_desc)][order(periodo,-trx)][trx == trx[position_explore], mt_desc]
+                                     
+
+compras_tc_2019[mt_desc == mt_desc_to_search, .(fecha, nombre,valor, nm_estab,
+                                                mt_desc, descripcion, description, group)][order(group)]
+```
+
+# buscar a un cliente 
+
+```{r}
+compras_tc_2019[nombre == , .(fecha, valor, nm_estab, mt_desc, descripcion, description, group)][order(group)]
+```
+
+```{r}
+uniqueN(fac_tc_2019$Description)
+```
+
+```{r}
+uniqueN(fac_tc_2019$GROUP)
+```
+
+
+
+
+

@@ -1,6 +1,7 @@
 
 
 
+
 create_monthly_tables <- function(month_to_create) {
   # create CRM tables
   print("create CRM tables")
@@ -13,7 +14,7 @@ create_monthly_tables <- function(month_to_create) {
   print("create datostc tables")
   # create  datos tc
   compare_premaker(
-    original_path = "data/original/master_file_desh",
+    original_path = "data/original/datos_tc",
     staging_path = os.path.join(staging_path, "datos_tc"),
     month_to_create
   )

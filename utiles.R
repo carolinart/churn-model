@@ -1,3 +1,5 @@
+####Useful functions####
+
 # Sets the locale depending on the system that executes the code
 if (Sys.info()["sysname"] == "Linux") {
   Sys.setlocale(category = "LC_TIME", locale = "en_US.utf-8")

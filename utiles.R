@@ -1,5 +1,7 @@
 #print
-print("esto es una prueba")
+print("esto no es una prueba")
+
+print("xd")
 
 # Sets the locale depending on the system that executes the code
 if (Sys.info()["sysname"] == "Linux") {

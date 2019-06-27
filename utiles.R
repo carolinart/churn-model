@@ -1,8 +1,3 @@
-#print
-print("esto no es una prueba")
-
-print("xd")
-
 # Sets the locale depending on the system that executes the code
 if (Sys.info()["sysname"] == "Linux") {
   Sys.setlocale(category = "LC_TIME", locale = "en_US.utf-8")
@@ -110,7 +105,11 @@ load_common_libraries <- function() {
   import("forcats")
   import("Metrics")
   import("Ckmeans.1d.dp")
-  import("glmnet")            ##Runs LASSO regression
+  import("caret")
+  import("vip")
+  import("scales")
+  import("rsample")
+  import("MASS")
 }
 
 #' Checks if a library is currently installed, installs it if not, and imports it.

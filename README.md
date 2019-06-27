@@ -1,1 +1,1 @@
-# churn_model
+Modelo de clasificación de cancelación voluntaria de TC

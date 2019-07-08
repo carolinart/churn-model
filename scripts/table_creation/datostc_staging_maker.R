@@ -143,52 +143,7 @@ datostc_staging_maker <-
                                                 ifelse(grepl("Voluntaria", tipo_cancelacion), "Cancelacion Voluntaria",
                                                        "Cancelacion Involuntaria"))]
     
-    # #####Parentesis: Grafica importante####
-    # #Rutas para guardar grafica
-    # plots_path <- "documentos/plots/descriptive_stats"
-    # 
-    # # Nombres carpeta de plots
-    # plot_alias <-
-    # paste0("churn_", today() %>% format(., "%Y%m%d"))
-    # 
-    # plots_path <-
-    #   os.path.join(plots_path, plot_alias)
-    # dir.create(plots_path)
-    # 
-    # print("Haciendo grafica")
-    # 
-    # # Porcentaje de cada categoria: Stock, cancelacion involuntaria y cancelacion voluntaria
-    # name_f <- unique(paste("perc_categ", datostc$periodo, sep = "_"))
-    # p <- datostc %>%
-    #   dplyr::group_by(tipo_cancelacion) %>%
-    #   dplyr::summarise(Count = n()) %>%
-    #   dplyr::mutate(percent = prop.table(Count) * 100) %>%
-    #   ggplot(aes(reorder(tipo_cancelacion,-percent), percent), fill = tipo_cancelacion) +
-    #   geom_col(fill = c("#00AFBB", "#E7B800", "#FF6347")) +
-    #   geom_text(aes(label = paste0(
-    #     sprintf("%.2f%%", percent), "\n", comma(Count)
-    #   )),
-    #   hjust = 0.5,
-    #   vjust = 0.5,
-    #   size = 3) +
-    #   theme_bw() +
-    #   labs(
-    #     caption = "Nota: Porcentaje arriba, cantidad total abajo",
-    #     x = "Resultado",
-    #     y = "Porcentaje",
-    #     title = paste("Porcentaje agregado de tarjeta de crédito en cada \n resultado posible, para", 
-    #                   datostc$periodo)
-    #   )
-    # ggsave(plot = p,
-    #        file = os.path.join(plots_path, paste0(name_f, ".png")),
-    #        height = 7,
-    #        width = 9)
-    # 
-    # rm(p)
-    # gc()
-    # print(paste("Grafica guardada en", plots_path))
-    # 
-    #####Continuacion tratamiento a datos####
+   
     #Eliminar cancelacion involuntaria (temporalmente)
     datostc <- datostc[tipo_cancelacion != "Cancelacion Involuntaria"]
     

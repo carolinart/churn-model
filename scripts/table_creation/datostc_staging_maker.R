@@ -251,8 +251,8 @@ datostc_staging_maker <-
     print(nrow(datostc))
     
     #Guardar como RDS
-    save <- paste0("datostc_", position[position == yearmonth])
-    saveRDS((datostc), file = os.path.join(staging_path, paste0(save, ".rds")))
+    # save <- paste0("datostc_", position[position == yearmonth])
+    # saveRDS((datostc), file = os.path.join(staging_path, paste0(save, ".rds")))
     
     print("Proceso finalizado")
     

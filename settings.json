@@ -1,0 +1,27 @@
+{
+  "paths": {
+    "scripts_path": "scripts",
+    "results_path": "resultados",
+    "data_path": "data",
+    "log_path": "logs",
+    "external_data" :"//bdbemcfs/Analytics/Informacion_Centralizada/Data_Analytics",
+    "models_path" : "modelos",
+    "data_cat": ["dictionary", "original", "staging", "metadata", "master"]
+  },
+ 
+ "modeling":{
+    "train_months": ["2018-07-01", "2019-02-01"],
+    "dev_months" : ["2019-03-01"],
+    "test_months": ["2019-04-01"],
+    "model_alias": "20190607_churn_tc"
+  },
+  "scoring":{
+    "model_alias": "20190619_churn_tc",
+    "date_to_score":["201903"],
+    "performance_calculation": "TRUE"
+  },
+  "month_process":{
+    "month_to_create": ["YES"]
+  },
+    "job":"Training"
+}
